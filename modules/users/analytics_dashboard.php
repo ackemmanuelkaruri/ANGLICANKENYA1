@@ -12,7 +12,7 @@ ini_set('display_errors', 1);
 require_once '../../db.php';
 require_once '../../includes/init.php';
 require_once '../../includes/security.php';
-require_once '../../includes/scope_helpers.php'; // Your provided helper file
+require_once '../../includes/scope_helpers.php';
 require_once '../../includes/rbac.php';
 
 start_secure_session();
@@ -38,26 +38,19 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // ============================================
-// NEW SCOPE LOGIC IMPLEMENTATION
-// (Code for get_analytics_scope_data remains unchanged from prior steps)
+// SCOPE LOGIC IMPLEMENTATION
 // ============================================
 
-/**
- * Gets the current base scope and list of selectable scopes for analytics.
- * This is a wrapper using the functions defined in scope_helpers.php.
- * * @return array 
- */
 function get_analytics_scope_data() {
-    global $pdo; // Ensure $pdo is available for helper functions
+    global $pdo;
 
     $user_scope = get_user_scope();
     $role_level = $user_scope['type'];
     $selectable_scopes = [];
-    // Define which roles are allowed to switch scopes
     $can_select_scope = in_array($role_level, ['super_admin', 'national_admin', 'diocese_admin', 'archdeaconry_admin', 'deanery_admin']);
     
     $data = [
-        'level' => 'parish', // Default base level
+        'level' => 'parish',
         'id' => $user_scope['parish_id'],
         'can_select_scope' => $can_select_scope,
         'selectable_scopes' => []
@@ -66,7 +59,7 @@ function get_analytics_scope_data() {
     // Determine the base scope level and ID
     if ($role_level === 'super_admin' || $role_level === 'national_admin') {
         $data['level'] = 'global';
-        $data['id'] = 0; // Global is ID 0
+        $data['id'] = 0;
     } elseif ($role_level === 'diocese_admin') {
         $data['level'] = 'diocese';
         $data['id'] = $user_scope['diocese_id'];
@@ -87,10 +80,8 @@ function get_analytics_scope_data() {
             $data['selectable_scopes'][] = ['level' => 'global', 'id' => 0, 'name' => 'All Church Data (Super Admin)'];
         }
         
-        // Add the user's base scope (My Scope)
         $data['selectable_scopes'][] = ['level' => $data['level'], 'id' => (int)($data['id'] ?? 0), 'name' => 'My ' . ucfirst($data['level']) . ' Only'];
 
-        // Fetch children scopes based on admin level (using your helper functions)
         if ($data['level'] === 'global' || $data['level'] === 'national' || $data['level'] === 'diocese') {
             $archdeaconries = get_accessible_archdeaconries();
             foreach ($archdeaconries as $a) {
@@ -108,11 +99,9 @@ function get_analytics_scope_data() {
             }
         }
     } else {
-        // For Parish Admin, only allow viewing own parish
         $data['selectable_scopes'][] = ['level' => $data['level'], 'id' => (int)($data['id'] ?? 0), 'name' => 'My Parish Only'];
     }
 
-    // Remove duplicates and sort for cleaner list
     $data['selectable_scopes'] = array_unique($data['selectable_scopes'], SORT_REGULAR);
     usort($data['selectable_scopes'], function($a, $b) {
         $level_order = ['global' => 0, 'national' => 1, 'diocese' => 2, 'archdeaconry' => 3, 'deanery' => 4, 'parish' => 5];
@@ -127,42 +116,39 @@ function get_analytics_scope_data() {
     return $data;
 }
 
-
 $scope_data = get_analytics_scope_data();
 $base_scope_level = $scope_data['level'];
 $base_scope_id = $scope_data['id'];
 $can_select_scope = $scope_data['can_select_scope'];
 $selectable_scopes = $scope_data['selectable_scopes'];
 
-// Get selected scope from URL, default to user's base scope.
+// Get selected scope from URL
 $selected_scope_level = isset($_GET['scope_level']) && !empty($_GET['scope_level']) ? trim($_GET['scope_level']) : $base_scope_level;
 $selected_scope_id = (isset($_GET['scope_id']) && is_numeric($_GET['scope_id'])) ? (int)$_GET['scope_id'] : (int)$base_scope_id;
 
-// Force scope back to user's base if they don't have permission to change it.
 if (!$can_select_scope && ($selected_scope_level !== $base_scope_level || $selected_scope_id !== $base_scope_id)) {
     $selected_scope_level = $base_scope_level;
     $selected_scope_id = $base_scope_id;
 }
 
-// Adjust ID for 'global' level to be 0
 if ($selected_scope_level === 'global') {
     $selected_scope_id = 0;
 }
 
 // ============================================
-// ANALYTICS MENU STRUCTURE (80+ Queries Derived from DB)
+// ANALYTICS MENU STRUCTURE (80+ Queries)
 // ============================================
 $analytics_menu = [
     'demographics_core' => [
         'title' => '1. Core Demographics (8)',
         'icon' => 'fa-users',
         'queries' => [
-            'age_gender_pyramid' => 'Age & Gender Pyramid (users)',
+            'age_gender_pyramid' => 'Age & Gender Pyramid',
             'youth_segment' => 'Youth (13-35) & Children (0-12) Count',
             'senior_segment' => 'Senior Members (60+) Breakdown',
-            'marital_status_split' => 'Members by Marital Status (user_details)',
-            'education_level_distribution' => 'Members by Education Level (user_details)',
-            'occupation_status_chart' => 'Members by Occupation Status (user_details)',
+            'marital_status_split' => 'Members by Marital Status',
+            'education_level_distribution' => 'Members by Education Level',
+            'occupation_status_chart' => 'Members by Occupation Status',
             'geographic_density_parish' => 'Population Density by Parish',
             'data_completeness_report' => 'Profile Data Completeness Scores',
         ]
@@ -171,24 +157,24 @@ $analytics_menu = [
         'title' => '2. Sacraments & Spirituality (11)',
         'icon' => 'fa-cross',
         'queries' => [
-            'baptism_status_count' => 'Baptized vs. Unbaptized (sacrament_records)',
-            'confirmation_status_count' => 'Confirmed vs. Unconfirmed (sacrament_records)',
+            'baptism_status_count' => 'Baptized vs. Unbaptized',
+            'confirmation_status_count' => 'Confirmed vs. Unconfirmed',
             'sacrament_funnel_progress' => 'Baptism -> Confirmation Progress Funnel',
             'certificate_holders' => 'Members with Both Certificates',
             'need_baptism_followup' => 'Members Requiring Baptism Follow-up',
             'need_confirmation_followup' => 'Members Requiring Confirmation Follow-up',
-            'spiritual_gifts_breakdown' => 'Spiritual Gifts Distribution (spiritual_gifts)',
+            'spiritual_gifts_breakdown' => 'Spiritual Gifts Distribution',
             'spiritual_gifts_by_ministry' => 'Spiritual Gifts Mapped to Ministries',
             'clergy_by_orders' => 'Clergy Count by Holy Orders/Rank',
             'clergy_active_inactive' => 'Active vs. Inactive Clergy Roles',
-            'clergy_marital_status' => 'Clergy by Marital Status (user_details)',
+            'clergy_marital_status' => 'Clergy by Marital Status',
         ]
     ],
     'involvement_ministry' => [
         'title' => '3. Ministry Participation (12)',
         'icon' => 'fa-hands-praying',
         'queries' => [
-            'ministry_participation_total' => 'Participation Count by Ministry (user_ministries)',
+            'ministry_participation_total' => 'Participation Count by Ministry',
             'participation_by_age' => 'Ministry Involvement by Age Group',
             'multi_ministry_serving' => 'Members Serving in Multiple Ministries',
             'not_in_any_ministry' => 'Members Not in Any Ministry (Gap Analysis)',
@@ -199,15 +185,15 @@ $analytics_menu = [
             'ministry_gender_split' => 'Gender Ratio per Ministry',
             'department_participation' => 'Participation Count by Department',
             'department_leaders' => 'Count of Departmental Leaders',
-            'ministry_turnover_rate' => 'Ministry Member Turnover Rate (Exit/Entry)',
+            'ministry_turnover_rate' => 'Ministry Member Turnover Rate',
         ]
     ],
     'involvement_groups' => [
         'title' => '4. Groups & Fellowships (9)',
         'icon' => 'fa-people-group',
         'queries' => [
-            'cell_group_penetration' => 'Cell Group Penetration Rate (members vs groups)',
-            'group_by_service_type' => 'Members by Service Type Attended (groups)',
+            'cell_group_penetration' => 'Cell Group Penetration Rate',
+            'group_by_service_type' => 'Members by Service Type Attended',
             'members_by_cell_group' => 'Headcount per Cell Group',
             'not_in_any_cell_group' => 'Members NOT in Any Cell Group',
             'cell_group_leader_count' => 'Count of Cell Group Leaders',
@@ -222,7 +208,7 @@ $analytics_menu = [
         'icon' => 'fa-hand-holding-dollar',
         'queries' => [
             'total_tithes_by_month' => 'Total Tithes & Offerings (Monthly Trend)',
-            'giving_method_breakdown' => 'Giving by Payment Method (tithes_and_offerings)',
+            'giving_method_breakdown' => 'Giving by Payment Method',
             'unique_donor_count' => 'Monthly Count of Unique Donors',
             'donor_retention_rate' => 'Donor Retention Rate (YTD vs. Prior Year)',
             'first_time_givers' => 'Count of First-Time Givers (Last 90 Days)',
@@ -238,13 +224,13 @@ $analytics_menu = [
         'icon' => 'fa-house-user',
         'queries' => [
             'family_head_count' => 'Total Family Heads by Parish',
-            'relationship_type_breakdown' => 'Breakdown by Relationship Type (user_relationships)',
+            'relationship_type_breakdown' => 'Breakdown by Relationship Type',
             'single_parent_families' => 'Single Parent Families Count',
             'average_family_size' => 'Average Family Size (Members + Dependents)',
             'members_with_dependents' => 'Members with Dependents Under 18',
             'dependents_in_school' => 'Count of Dependents Registered in School',
             'dependent_to_member_conversion' => 'Dependents Converted to Full Members',
-            'orphaned_dependents_count' => 'Count of Dependents without Two Parents (user_relationships)',
+            'orphaned_dependents_count' => 'Count of Dependents without Two Parents',
             'dependents_age_distribution' => 'Age Distribution of Dependents',
             'family_status_report' => 'Complete Family Status by Family Head ID',
         ]
@@ -253,11 +239,11 @@ $analytics_menu = [
         'title' => '7. Pastoral & Visitors (9)',
         'icon' => 'fa-heart-circle-plus',
         'queries' => [
-            'visitor_conversion_rate' => 'Visitor-to-Member Conversion Rate (visitors)',
+            'visitor_conversion_rate' => 'Visitor-to-Member Conversion Rate',
             'visitor_followup_status' => 'Visitor Follow-Up Status (Open vs. Closed)',
             'visitor_retention_trend' => 'Returning Visitors Trend (by visit count)',
             'visitor_source_breakdown' => 'Visitors by Source/Referral Method',
-            'followup_team_performance' => 'Follow-Up Team Performance (By Assigned User)',
+            'followup_team_performance' => 'Follow-Up Team Performance',
             'unassigned_followup_list' => 'List of Visitors with Unassigned Follow-Up',
             'needs_pastoral_care_active' => 'Active Members Flagged for Pastoral Care',
             'pastoral_care_requests_trend' => 'Pastoral Care Request Volume (Monthly)',
@@ -272,7 +258,7 @@ $analytics_menu = [
             'attendance_vs_membership' => 'Attendance Rate vs. Total Membership',
             'regular_attendees_ratio' => 'Regular Attendees Ratio (80%+)',
             'absentee_list_90days' => 'Members Absent for 90+ Days',
-            'events_volume_by_type' => 'Events Hosted Volume by Type (events)',
+            'events_volume_by_type' => 'Events Hosted Volume by Type',
             'events_attendance_vs_target' => 'Average Event Attendance vs. Target',
             'annual_theme_adherence' => 'Annual Theme Adherence Tracking',
             'event_satisfaction_scores' => 'Average Event Satisfaction Scores',
@@ -297,11 +283,11 @@ $analytics_menu = [
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 $query_type = isset($_GET['query']) ? trim($_GET['query']) : '';
 $comparison_period = isset($_GET['compare']) ? trim($_GET['compare']) : 'none';
-$view_mode = isset($_GET['view']) ? trim($_GET['view']) : 'table';
+$view_mode = isset($_GET['view']) ? trim($_GET['view']) : 'both';
 
 $page_title = "Members Analytics";
 
-// Build the scope query string to append to all menu links
+// Build scope query string
 $scope_qstring = '';
 if ($selected_scope_level) {
     $scope_qstring = '&scope_level=' . urlencode($selected_scope_level) . '&scope_id=' . urlencode($selected_scope_id);
@@ -384,7 +370,7 @@ if ($selected_scope_level) {
             <?php if ($selected_scope_level && $selected_scope_level !== 'global'): ?>
             <div class="alert alert-warning mb-4">
                 <i class="fas fa-shield-alt me-2"></i>
-                You are currently viewing data scoped to the **<?php echo strtoupper($selected_scope_level); ?> (ID: <?php echo $selected_scope_id; ?>)**.
+                You are currently viewing data scoped to the <strong><?php echo strtoupper($selected_scope_level); ?> (ID: <?php echo $selected_scope_id; ?>)</strong>.
             </div>
             <?php endif; ?>
 
@@ -392,21 +378,24 @@ if ($selected_scope_level) {
                 <div class="stat-card">
                     <div class="stat-value">
                         <?php
-                        // NOTE: This query MUST be updated to use $selected_scope_level and $selected_scope_id for filtering in a real setup.
                         try {
                             $total_query = "SELECT COUNT(*) FROM users u WHERE role_level = 'member'";
                             $scope_params = [];
                             
-                            // Simple scope filtering logic
                             if ($selected_scope_level === 'parish' && $selected_scope_id) {
                                 $total_query .= " AND u.parish_id = ?";
                                 $scope_params[] = $selected_scope_id;
                             } elseif ($selected_scope_level === 'deanery' && $selected_scope_id) {
                                 $total_query .= " AND u.deanery_id = ?";
                                 $scope_params[] = $selected_scope_id;
-                            } // ... and so on for other levels
+                            } elseif ($selected_scope_level === 'archdeaconry' && $selected_scope_id) {
+                                $total_query .= " AND u.archdeaconry_id = ?";
+                                $scope_params[] = $selected_scope_id;
+                            } elseif ($selected_scope_level === 'diocese' && $selected_scope_id) {
+                                $total_query .= " AND u.diocese_id = ?";
+                                $scope_params[] = $selected_scope_id;
+                            }
                             
-                            // Assuming $pdo is correctly initialized elsewhere
                             $stmt = $pdo->prepare($total_query);
                             $stmt->execute($scope_params);
                             $total_members = $stmt->fetchColumn();
@@ -451,18 +440,14 @@ if ($selected_scope_level) {
                 <i class="fas fa-lightbulb me-2"></i>
                 <strong>Pro Tip:</strong> Use the sidebar to explore different member insights. 
                 <?php if ($can_select_scope): ?>
-                Use the **Data Scope** selector in the control panel when you select a query to switch your view.
+                Use the <strong>Data Scope</strong> selector in the control panel when you select a query to switch your view.
                 <?php endif; ?>
             </div>
         </div>
 
         <?php else: 
-            // =========================================================================
-            // *** FIX APPLIED HERE ***: Use null coalescing to safely get menu data
-            // =========================================================================
             $current_category_data = $analytics_menu[$category] ?? ['icon' => 'fa-bug', 'title' => 'Error', 'queries' => []];
             $current_query_title = $current_category_data['queries'][$query_type] ?? 'Query Not Found';
-            // =========================================================================
         ?>
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-start">
@@ -494,7 +479,6 @@ if ($selected_scope_level) {
                     <label class="form-label small text-muted">Data Scope</label>
                     <select class="form-select" id="scopeSelector" onchange="changeScope(this.value)">
                         <?php foreach ($selectable_scopes as $scope_item): 
-                            // The value format is level_id (e.g., 'diocese_1', 'global_0')
                             $value = $scope_item['level'] . '_' . (int)($scope_item['id'] ?? 0);
                             $is_selected = ($selected_scope_level === $scope_item['level'] && (int)$selected_scope_id === (int)($scope_item['id'] ?? 0));
                             $selected = $is_selected ? 'selected' : '';
@@ -506,6 +490,7 @@ if ($selected_scope_level) {
                     </select>
                 </div>
                 <?php endif; ?>
+                
                 <div class="control-item">
                     <label class="form-label small text-muted">View Mode</label>
                     <select class="form-select" id="viewMode" onchange="changeView(this.value)">
@@ -528,7 +513,7 @@ if ($selected_scope_level) {
 
                 <div class="control-item">
                     <label class="form-label small text-muted">Chart Type</label>
-                    <select class="form-select" id="chartType">
+                    <select class="form-select" id="chartType" onchange="updateChart()">
                         <option value="bar">Bar Chart</option>
                         <option value="pie">Pie Chart</option>
                         <option value="line">Line Chart</option>
@@ -538,19 +523,156 @@ if ($selected_scope_level) {
             </div>
         </div>
 
-        <div class="empty-state">
-            <div class="empty-state-icon">
-                <i class="fas fa-database"></i>
+        <?php
+        // ============================================
+        // EXECUTE QUERY AND DISPLAY RESULTS
+        // ============================================
+        require_once __DIR__ . '/analytics_queries.php';
+        
+        $query_result = execute_analytics_query($query_type, $selected_scope_level, $selected_scope_id, $pdo, $comparison_period);
+        
+        if ($query_result['success'] && !empty($query_result['data'])) {
+            ?>
+            
+            <!-- Chart Display -->
+            <?php if ($view_mode === 'both' || $view_mode === 'chart'): ?>
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Visual Representation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="analyticsChart" style="max-height: 400px;"></canvas>
+                </div>
             </div>
-            <h3 class="empty-state-title">Query Processing</h3>
-            <p class="empty-state-text">
-                The actual data query for "<?php echo htmlspecialchars($current_query_title); ?>" is active for the **<?php echo strtoupper($selected_scope_level); ?> (ID: <?php echo $selected_scope_id ?? 'N/A'; ?>)** scope.<br>
-                **Action Required:** Implement the database query logic in a separate file using `$selected_scope_level` and `$selected_scope_id` to filter results.
-            </p>
-            <button class="btn btn-primary mt-3" onclick="alert('This will execute the database query and display results using the active scope parameters.')">
-                <i class="fas fa-play me-2"></i>Run Query
-            </button>
-        </div>
+            <?php endif; ?>
+            
+            <!-- Data Table -->
+            <?php if ($view_mode === 'both' || $view_mode === 'table'): ?>
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Data Table
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <?php 
+                                    if (!empty($query_result['data'])) {
+                                        foreach (array_keys($query_result['data'][0]) as $header) {
+                                            echo '<th>' . htmlspecialchars(ucwords(str_replace('_', ' ', $header))) . '</th>';
+                                        }
+                                    }
+                                    ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($query_result['data'] as $row): ?>
+                                <tr>
+                                    <?php foreach ($row as $value): ?>
+                                    <td><?php echo htmlspecialchars($value ?? 'N/A'); ?></td>
+                                    <?php endforeach; ?>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Chart.js Rendering -->
+            <script>
+            let currentChart = null;
+            
+            function renderChart() {
+                const chartData = <?php echo json_encode($query_result['data']); ?>;
+                const chartType = document.getElementById('chartType').value || '<?php echo $query_result['chart_type']; ?>';
+                
+                // Extract labels and values from first two columns
+                const labels = chartData.map(row => Object.values(row)[0]);
+                const values = chartData.map(row => Object.values(row)[1]);
+                
+                // Destroy existing chart if it exists
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+                
+                const ctx = document.getElementById('analyticsChart').getContext('2d');
+                currentChart = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '<?php echo htmlspecialchars($current_query_title); ?>',
+                            data: values,
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(255, 206, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                                'rgba(255, 159, 64, 0.8)',
+                                'rgba(199, 199, 199, 0.8)',
+                                'rgba(83, 102, 255, 0.8)',
+                                'rgba(255, 159, 243, 0.8)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: chartType !== 'bar',
+                                position: 'bottom'
+                            },
+                            title: {
+                                display: true,
+                                text: '<?php echo htmlspecialchars($current_query_title); ?>',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        scales: (chartType === 'bar' || chartType === 'line') ? {
+                            y: {
+                                beginAtZero: true
+                            }
+                        } : {}
+                    }
+                });
+            }
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                <?php if ($view_mode === 'both' || $view_mode === 'chart'): ?>
+                renderChart();
+                <?php endif; ?>
+            });
+            
+            function updateChart() {
+                renderChart();
+            }
+            </script>
+            
+            <?php
+        } else {
+            // Show error or no data message
+            ?>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>No Data Available:</strong> 
+                <?php echo htmlspecialchars($query_result['error'] ?? 'No data found for the selected query and scope. This could mean there are no records matching your criteria.'); ?>
+            </div>
+            <?php
+        }
+        ?>
 
         <?php endif; ?>
     </div>
@@ -559,6 +681,67 @@ if ($selected_scope_level) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
-    <script src="../../js/analytics.js"></script> 
+    <script>
+    // Sidebar toggle
+    document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+        document.getElementById('analyticsSidebar').classList.toggle('collapsed');
+    });
+    
+    // Category accordion
+    document.querySelectorAll('.category-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            const submenu = document.getElementById('submenu-' + category);
+            
+            // Toggle this submenu
+            submenu.classList.toggle('show');
+            this.classList.toggle('active');
+            
+            // Close other submenus
+            document.querySelectorAll('.submenu').forEach(menu => {
+                if (menu !== submenu) {
+                    menu.classList.remove('show');
+                }
+            });
+            document.querySelectorAll('.category-header').forEach(h => {
+                if (h !== this) {
+                    h.classList.remove('active');
+                }
+            });
+        });
+    });
+    
+    // Change scope
+    function changeScope(value) {
+        const [level, id] = value.split('_');
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('scope_level', level);
+        currentUrl.searchParams.set('scope_id', id);
+        window.location.href = currentUrl.toString();
+    }
+    
+    // Change view mode
+    function changeView(mode) {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('view', mode);
+        window.location.href = currentUrl.toString();
+    }
+    
+    // Change comparison
+    function changeComparison(period) {
+        if (period === 'custom') {
+            alert('Custom date range selector coming soon!');
+            return;
+        }
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('compare', period);
+        window.location.href = currentUrl.toString();
+    }
+    
+    // Export data
+    function exportData() {
+        alert('Export to Excel functionality coming soon!\n\nThis will export the current table data to an Excel file.');
+    }
+    </script>
 </body>
 </html>

@@ -1,65 +1,6 @@
 /* ======================================================================
-    CORE LAYOUT FIXES
-    ====================================================================== */
-
-/*
-   Issue: Snapping/Hiding Main Content
-   Reason: The main content margin may not be respecting the sidebar's fixed
-           position consistently due to content flow or layout context.
-   Fix: Ensure the main content uses the correct margin-left for desktop view.
-*/
-
-.main-content {
-    /* 260px is the width of the sidebar. This margin is essential for
-       desktop view to prevent content from going under the fixed sidebar. */
-    margin-left: 260px;
-    padding: 30px;
-    transition: margin-left 0.3s;
-    /* FIX: Add a high z-index to main content elements (like a top bar) 
-           that might have been hiding behind the sidebar's z-index: 1000
-           if they were also fixed/sticky. */
-    position: relative; /* Essential for z-index to work */
-    z-index: 1; /* Keep it above body, but below sidebar when needed. */
-}
-
-/* ============================================
-    SIDEBAR & RESPONSIVE FIXES
-    ============================================ */
-
-/* Mobile view: Sidebar slides out, Main Content takes full width */
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        z-index: 1000;
-        width: 260px; /* Keep fixed width for the mobile overlay */
-        /* Hides the sidebar off-screen */
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-    .sidebar.open {
-        /* Brings the sidebar back into view for the overlay */
-        transform: translateX(0);
-    }
-    
-    /* CRITICAL FIX: The main content must have ZERO margin on mobile. */
-    .main-content {
-        margin-left: 0; /* Remove the 260px offset */
-        padding: 15px;
-    }
-    
-    /* If you have a top navigation bar (not visible in your CSS), ensure it 
-       has a z-index > 1000 on mobile to overlap the sidebar when it's open. 
-       e.g., .top-nav { z-index: 1001; }
-    */
-}
-
-/* FULL REVISED CODE (for completeness) */
-
-/* ======================================================================
-    DASHBOARD STYLES - Original + Compact Styles
-    ====================================================================== */
+   DASHBOARD STYLES - Original + Compact Styles
+   ====================================================================== */
 
 :root {
     --primary-color: #667eea;
@@ -85,24 +26,25 @@ body {
     transition: background 0.3s, color 0.3s; /* Smooth theme transition */
 }
 
-/* 🚀 FIX: DARK THEME FONT VISIBILITY */
+/* DARK THEME FONT VISIBILITY */
 body[data-theme="dark"] {
     background: var(--dark-bg);
     color: var(--dark-text); /* Sets main text color to light */
 }
-/* END FIX */
 
+/* Sidebar Styles (Default/Desktop) */
 .sidebar {
     min-height: 100vh;
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     color: white;
-    position: fixed;
+    position: fixed; /* Fixed on desktop */
     width: 260px;
     top: 0;
     left: 0;
     overflow-y: auto;
     z-index: 1000;
-    transition: all 0.3s ease; /* Ensure transition is here for smooth opening/closing */
+    transition: all 0.3s ease; /* Ensure transition is here for smooth opening/closing (if using a toggle) */
+    /* Ensure no transform property here, as it's defined in the mobile media query */
 }
 
 .sidebar .user-info {
@@ -143,19 +85,46 @@ body[data-theme="dark"] {
     margin-right: 10px;
 }
 
-/* 💻 CRITICAL DESKTOP LAYOUT */
+/* CRITICAL DESKTOP LAYOUT */
 .main-content {
-    margin-left: 260px; /* **Ensures space for the fixed sidebar** */
+    margin-left: 260px; /* Ensures space for the fixed sidebar */
     padding: 30px;
     transition: margin-left 0.3s;
     position: relative;
     z-index: 1; 
 }
-/* END CRITICAL DESKTOP LAYOUT */
 
 /* ======================================================================
-    CARD STYLES
-    ====================================================================== */
+   MOBILE/RESPONSIVE FIXES (Sidebar Always Visible - Stacked Layout)
+   ====================================================================== */
+
+@media (max-width: 768px) {
+    /* FIX 1: Change sidebar to flow naturally (stacked) */
+    .sidebar {
+        position: relative; /* CRITICAL: Allows it to stack above main-content */
+        width: 100%;       /* Takes full width */
+        min-height: auto;  /* IMPORTANT: Prevents sidebar from being 100vh tall */
+        max-width: none;   /* Reset max-width if one was set for overlay */
+        transform: none;   /* CRITICAL: Disables the off-screen hiding */
+        /* You can remove the 'left: 0' and 'top: 0' as they are overridden by position: relative */
+    }
+    
+    /* FIX 2: Remove the desktop margin from main content */
+    .main-content {
+        margin-left: 0; /* CRITICAL: Removes the 260px offset */
+        padding: 15px;
+    }
+    
+    /* The .sidebar.open class and related JavaScript logic are now unnecessary */
+    .sidebar.open {
+        transform: none; /* Ensure no residual transform */
+    }
+}
+
+
+/* ======================================================================
+   CARD STYLES (Unchanged)
+   ====================================================================== */
 
 /* ORIGINAL STAT CARDS */
 .stat-card {
@@ -354,9 +323,9 @@ body[data-theme="dark"] .compact-stat-label {
 /* END DARK THEME CARD STYLES */
 
 
-/* ============================================
-    DASHBOARD ANIMATIONS & EFFECTS
-    ============================================ */
+/* ======================================================================
+   Animations, Notifications, Tooltips, etc. (Unchanged)
+   ====================================================================== */
 
 /* FADE IN/OUT ANIMATIONS */
 @keyframes fadeIn {
@@ -429,10 +398,7 @@ body[data-theme="dark"] .compact-stat-label {
 .fade-in-up { animation: fadeInUp 0.5s ease-out; }
 .slide-in-left { animation: slideInLeft 0.3s ease-out; }
 
-/* ============================================
-    NOTIFICATION STYLES
-    ============================================ */
-
+/* NOTIFICATION STYLES */
 .notification-container {
     position: fixed;
     top: 20px;
@@ -532,9 +498,7 @@ body[data-theme="forest"] .notification {
     color: #1b5e20;
 }
 
-/* ============================================
-    TOOLTIP STYLES
-    ============================================ */
+/* TOOLTIP STYLES */
 
 .tooltip {
     position: fixed;
@@ -570,16 +534,12 @@ body[data-theme="dark"] .tooltip::after {
     border-top-color: #555;
 }
 
-/* ============================================
-    CARD ANIMATIONS
-    ============================================ */
+/* CARD ANIMATIONS */
 
 .stat-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .stat-card:hover {
-    /* Changed animation to just the original transform for better UX */
-    /* animation: bounce 0.6s ease-out; */
     transform: translateY(-5px);
 }
 
@@ -587,8 +547,6 @@ body[data-theme="dark"] .tooltip::after {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .quick-action-card:hover {
-    /* Changed animation to just the original transform for better UX */
-    /* animation: bounce 0.6s ease-out; */
     transform: translateY(-5px);
 }
 
@@ -596,8 +554,6 @@ body[data-theme="dark"] .tooltip::after {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .compact-stat-card:hover {
-    /* Changed animation to just the original transform for better UX */
-    /* animation: bounce 0.6s ease-out; */
     transform: translateY(-3px);
 }
 
@@ -605,8 +561,6 @@ body[data-theme="dark"] .tooltip::after {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .quick-action-card-compact:hover {
-    /* Changed animation to just the original transform for better UX */
-    /* animation: bounce 0.6s ease-out; */
     transform: translateY(-3px);
 }
 
@@ -617,9 +571,7 @@ body[data-theme="dark"] .tooltip::after {
     animation: pulse 1s infinite;
 }
 
-/* ============================================
-    BUTTON ANIMATIONS
-    ============================================ */
+/* BUTTON ANIMATIONS */
 
 button, a.btn, [role="button"] {
     transition: all 0.3s ease;
@@ -639,46 +591,7 @@ button:active, a.btn:active, [role="button"]:active {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
-/* ============================================
-    SIDEBAR & RESPONSIVE FIXES
-    ============================================ */
-
-.sidebar {
-    transition: all 0.3s ease;
-}
-.sidebar.open {
-    transform: translateX(0);
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        z-index: 1000;
-        width: 260px; /* IMPORTANT: Ensures width for the off-screen state */
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
-    /* CRITICAL FIX: Removes the fixed margin-left on small screens */
-    .main-content {
-        margin-left: 0;
-        padding: 15px;
-    }
-    
-    .sidebar {
-        width: 100%;
-        max-width: 300px;
-    }
-}
-
-/* ============================================
-    PAGE TRANSITIONS
-    ============================================ */
+/* PAGE TRANSITIONS */
 
 .page-header {
     animation: fadeInUp 0.5s ease-out;
@@ -709,9 +622,7 @@ button:active, a.btn:active, [role="button"]:active {
 .quick-action-card:nth-child(3), .quick-action-card-compact:nth-child(3) { animation-delay: 0.8s; }
 .quick-action-card:nth-child(4), .quick-action-card-compact:nth-child(4) { animation-delay: 0.9s; }
 
-/* ============================================
-    MODAL ANIMATIONS
-    ============================================ */
+/* MODAL ANIMATIONS */
 
 .modal {
     animation: fadeIn 0.3s ease-out;
@@ -720,17 +631,13 @@ button:active, a.btn:active, [role="button"]:active {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* ============================================
-    SCROLL ANIMATIONS
-    ============================================ */
+/* SCROLL ANIMATIONS */
 
 html {
     scroll-behavior: smooth;
 }
 
-/* ============================================
-    RESPONSIVE ANIMATIONS
-    ============================================ */
+/* RESPONSIVE ANIMATIONS */
 
 @media (prefers-reduced-motion: reduce) {
     * {
@@ -740,9 +647,7 @@ html {
     }
 }
 
-/* ============================================
-    LOADING SPINNER
-    ============================================ */
+/* LOADING SPINNER */
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -764,9 +669,7 @@ body[data-theme="dark"] .spinner {
     border-top-color: #64b5f6;
 }
 
-/* ============================================
-    HIGHLIGHT ANIMATION
-    ============================================ */
+/* HIGHLIGHT ANIMATION */
 
 @keyframes highlight {
     0% { background-color: transparent; }
@@ -778,18 +681,14 @@ body[data-theme="dark"] .spinner {
     animation: highlight 1s ease-out;
 }
 
-/* ============================================
-    FORM ANIMATIONS
-    ============================================ */
+/* FORM ANIMATIONS */
 
 input:focus, textarea:focus, select:focus {
     transform: scale(1.01);
     transition: all 0.2s ease;
 }
 
-/* ============================================
-    SUCCESS/ERROR ANIMATIONS
-    ============================================ */
+/* SUCCESS/ERROR ANIMATIONS */
 
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
@@ -811,10 +710,12 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ============================================
-    RESPONSIVE ADJUSTMENTS
-    ============================================ */
+   RESPONSIVE ADJUSTMENTS (Unchanged, but now applies to the new layout)
+   ============================================ */
 
 @media (max-width: 768px) {
+    /* Padding already set above to 15px */
+    
     .compact-stat-card {
         margin-bottom: 15px;
     }
@@ -832,11 +733,11 @@ input:focus, textarea:focus, select:focus {
         font-size: 0.8rem;
     }
     
-    /* Padding already set above to 15px */
-    
     .sidebar {
+        /* Note: This max-width is irrelevant since width: 100% is set higher up, 
+           but leaving for reference. The key fix is in the .sidebar block above. */
         width: 100%;
-        max-width: 300px;
+        max-width: 300px; 
     }
 }
 

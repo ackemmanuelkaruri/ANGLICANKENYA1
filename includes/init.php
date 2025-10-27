@@ -42,11 +42,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // -----------------------------------------------------
 // 6. Optional: Auto-check login session
 // -----------------------------------------------------
+/*
 if (!isset($_SESSION['user_id'])) {
     // Redirect to login if not logged in
-    header("Location: " . (is_development() ? "/anglicankenya/login.php" : "/login.php"));
-    exit();
+  //  header("Location: " . (is_development() ? "/anglicankenya/login.php" : "/login.php"));
+    //exit();
 }
+*/
 
 // -----------------------------------------------------
 // 7. Environment-specific logging (optional)

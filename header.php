@@ -11,7 +11,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Define BASE_URL if not already defined
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/anglicankenya/'); // Adjust for your project subfolder
+   define('BASE_URL', '/');
 }
 
 // Determine if user is logged in

@@ -106,12 +106,14 @@ function validate_session_security() {
     }
     
     // IP validation
+    /*
     if (isset($_SESSION['_ip_address'])) {
         if ($_SESSION['_ip_address'] !== $_SERVER['REMOTE_ADDR']) {
             error_log("WARNING: IP change detected for session " . session_id() . 
                      " from " . $_SESSION['_ip_address'] . " to " . $_SERVER['REMOTE_ADDR']);
         }
     }
+    */
     
     // Session expiration
     if (isset($_SESSION['_created'])) {

@@ -59,7 +59,7 @@ function sendVerificationEmail($email, $first_name, $verification_token) {
         // Build verification link dynamically
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'];
-        $verification_link = $protocol . '://' . $host . '/anglicankenya/verify_email.php?token=' . urlencode($verification_token);
+     $verification_link = $protocol . '://' . $host . '/verify_email.php?token=' . urlencode($verification_token);
 
         $mail->Body    = getVerificationEmailTemplate($first_name, $verification_link);
         $mail->AltBody = getVerificationEmailPlainText($first_name, $verification_link);
@@ -106,7 +106,7 @@ function sendPasswordResetEmail($email, $first_name, $reset_token) {
         // Build reset link dynamically
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'];
-        $reset_link = $protocol . '://' . $host . '/anglicankenya/reset_password_confirm.php?token=' . urlencode($reset_token);
+       $reset_link = $protocol . '://' . $host . '/reset_password_confirm.php?token=' . urlencode($reset_token);
 
         $mail->Body    = getPasswordResetEmailTemplate($first_name, $reset_link);
         $mail->AltBody = getPasswordResetEmailPlainText($first_name, $reset_link);

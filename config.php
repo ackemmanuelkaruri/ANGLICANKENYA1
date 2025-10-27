@@ -27,6 +27,13 @@ function get_environment() {
         return 'staging';
     }
     
+    // Check for InfinityFree domains (production)
+    if (strpos($host, '.infinityfreeapp.com') !== false || 
+        strpos($host, '.rf.gd') !== false ||
+        strpos($host, '.42web.io') !== false) {
+        return 'production';
+    }
+    
     // Everything else = production
     return 'production';
 }
